@@ -7,7 +7,7 @@
 *@fastify/middie* is the plugin that adds middleware support on steroids to [Fastify](https://www.npmjs.com/package/fastify).
 
 The syntax style is the same as [connect](https://www.npmjs.com/package/connect).
-But it does not provide full compatbility with [express](http://npm.im/express) which has its own extended request/response objects, see [@fastify/express](https://github.com/fastify/fastify-express) if that is needed.
+But it does not provide full compatbility with [express](https://www.npmjs.com/package/express) which has its own extended request/response objects, see [@fastify/express](https://github.com/fastify/fastify-express) if that is needed.
 Does not support the full syntax `middleware(err, req, res, next)`, because error handling is done inside Fastify.
 
 ## Install
@@ -107,7 +107,7 @@ It is possible to change the Fastify hook that the middleware will be attached t
 
 To change the hook, pass a `hook` option like so:
 
-*Note you can access `req.body` from the `preParsing`, `onError`, `preSerialization`, and `onSend` lifecycle steps. Take a look at the [Lifecycle](https://www.fastify.dev/docs/latest/Reference/Lifecycle/) documentation page to see the order of the steps.*
+*Note you can access `req.body` from the `preParsing`, `onError`, `preSerialization`, and `onSend` lifecycle steps. Take a look at the [Lifecycle](https://fastify.dev/docs/latest/Reference/Lifecycle/) documentation page to see the order of the steps.*
 
 ```js
 const fastify = require('fastify')()
@@ -194,7 +194,7 @@ async function subsystem (fastify, opts) {
 
 #### :warning: potential ReDoS attacks
 
-Middie uses [`path-to-regexp`](http://npm.im/path-to-regexp) to convert paths to regular expressions.
+Middie uses [`path-to-regexp`](https://www.npmjs.com/package/path-to-regexp) to convert paths to regular expressions.
 This might cause potential [ReDoS](https://en.wikipedia.org/wiki/ReDoS) attacks in your applications if
 certain patterns are used. Use it with care.
 
@@ -293,7 +293,7 @@ This project is kindly sponsored by:
 - [nearForm](https://nearform.com)
 
 Past sponsors:
-- [LetzDoIt](https://www.letzdoitapp.com/)
+- LetzDoIt
 
 ## License
 

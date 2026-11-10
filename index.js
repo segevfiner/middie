@@ -24,11 +24,23 @@ const supportedHooksWithoutPayload = [
 
 const supportedHooks = [...supportedHooksWithPayload, ...supportedHooksWithoutPayload]
 
+function resolveNormalizationOptions (instance) {
+  const initialConfig = instance.initialConfig || {}
+  const routerOptions = initialConfig.routerOptions || {}
+
+  return {
+    ignoreDuplicateSlashes: routerOptions.ignoreDuplicateSlashes ?? initialConfig.ignoreDuplicateSlashes,
+    useSemicolonDelimiter: routerOptions.useSemicolonDelimiter ?? initialConfig.useSemicolonDelimiter,
+    ignoreTrailingSlash: routerOptions.ignoreTrailingSlash ?? initialConfig.ignoreTrailingSlash
+  }
+}
+
 function fastifyMiddie (fastify, options, next) {
   fastify.decorate('use', use)
   fastify[kMiddlewares] = []
   fastify[kMiddieHasMiddlewares] = false
-  fastify[kMiddie] = Middie(onMiddieEnd)
+
+  fastify[kMiddie] = Middie(onMiddieEnd, resolveNormalizationOptions(fastify))
 
   const hook = options.hook || 'onRequest'
 
@@ -44,9 +56,17 @@ function fastifyMiddie (fastify, options, next) {
     .addHook('onRegister', onRegister)
 
   function use (path, fn) {
+    const prefix = this.prefix
     if (typeof path === 'string') {
-      const prefix = this.prefix
-      path = prefix + (path === '/' && prefix.length > 0 ? '' : path)
+      path = joinPrefix(prefix, path)
+    } else if (Array.isArray(path)) {
+      path = path.map(p => {
+        // Non-string entries (RegExp) are not prefix-scoped here; they pass
+        // through to the engine. RegExp mount handling is a separate concern.
+        /* c8 ignore next */
+        if (typeof p !== 'string') return p
+        return joinPrefix(prefix, p)
+      })
     }
     this[kMiddlewares].push([path, fn])
     if (fn == null) {
@@ -87,11 +107,17 @@ function fastifyMiddie (fastify, options, next) {
   function onRegister (instance) {
     const middlewares = instance[kMiddlewares].slice()
     instance[kMiddlewares] = []
-    instance[kMiddie] = Middie(onMiddieEnd)
+    instance[kMiddie] = Middie(onMiddieEnd, resolveNormalizationOptions(instance))
     instance[kMiddieHasMiddlewares] = false
     instance.decorate('use', use)
-    for (const middleware of middlewares) {
-      instance.use(...middleware)
+    for (const [path, fn] of middlewares) {
+      instance[kMiddlewares].push([path, fn])
+      if (fn == null) {
+        instance[kMiddie].use(path)
+      } else {
+        instance[kMiddie].use(path, fn)
+      }
+      instance[kMiddieHasMiddlewares] = true
     }
   }
 
@@ -103,4 +129,18 @@ module.exports = fp(fastifyMiddie, {
   name: '@fastify/middie'
 })
 module.exports.default = fastifyMiddie
+
+function joinPrefix (prefix, path) {
+  // Match Fastify's route join without changing intentional duplicate slashes.
+  if ((path === '/' && prefix.length > 0) || (path[0] === '/' && prefix.endsWith('/'))) {
+    // The prefix already supplies the separator; drop the path's leading slash.
+    path = path.slice(1)
+  } else if (path[0] !== '/' && !prefix.endsWith('/')) {
+    // A mount path with no leading slash would otherwise glue onto the prefix
+    // (`/api` + `secret` => `/apisecret`) or never match a slash-led route.
+    path = '/' + path
+  }
+  return prefix + path
+}
+
 module.exports.fastifyMiddie = fastifyMiddie
