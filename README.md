@@ -186,7 +186,7 @@ async function subsystem (fastify, opts) {
   fastify.use(serveStatic(path.join(__dirname, '/assets')))
 
   // Catch all route so that Fastify will call the middleware above
-  fastify.all('*', () => {
+  fastify.all('*', (_request, reply) => {
     return reply
   })
 }
